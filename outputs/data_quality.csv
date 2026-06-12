@@ -1,0 +1,7 @@
+﻿,dtype,missing_count,unique_count
+R&D Spend,float64,0.0,49.0
+Administration,float64,0.0,50.0
+Marketing Spend,float64,0.0,48.0
+State,object,0.0,3.0
+Profit,float64,0.0,50.0
+__dataset__,summary,0.0,50.0

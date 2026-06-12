@@ -1,0 +1,18 @@
+﻿model_id,feature,coefficient
+Model_1,Intercept,45542.392477514295
+Model_1,R&D Spend,0.7833743148902919
+Model_1,Marketing Spend,0.039239787145531516
+Model_2,Intercept,45671.89297469078
+Model_2,R&D Spend,0.7841298340177107
+Model_2,Marketing Spend,0.03914520909769936
+Model_2,State_New York,-510.45738989726533
+Model_3,Intercept,49336.66803799113
+Model_3,R&D Spend,0.8536091075148801
+Model_4,Intercept,48518.796955029815
+Model_4,R&D Spend,0.8512203090535343
+Model_4,State_Florida,2351.4124350695934
+Model_4,State_New York,555.2533430234527
+Model_5,Intercept,54071.87574599086
+Model_5,R&D Spend,0.803779275629752
+Model_5,Administration,-0.06792917400149986
+Model_5,Marketing Spend,0.03124154589773294

@@ -1,0 +1,54 @@
+read README.md and implement
+
+run the app
+
+please present your result in a figure, and explain
+
+put comments remark of the result meaning in the figure directly 
+
+I want this result and also list features used in your model
+
+
+List top 5 feature selection algorithms
+
+----
+
+implement all this 5 algorithms and plot in the same figure in selection performance allinone.pnd
+
+summarize today work and write to README.MD
+
+I want to add figures in the README.MD
+
+also generate workflow in draw.io and put in README.MD
+
+workflow has to convert to png and insert into the README.MD
+
+
+i want to convert drwawio figure to excalidraw style, please do again and replace the workflow in hw6.md png
+
+push to github: https://github.com/ShengChieh2121/AIOT-HW6_starup-50.git
+
+
+-----
+
+貼HW6.MD在ChatGPT
+產生資訊圖表, 生圖:excalidraw style A4 直式 2K
+
+---
+
+Put in README.MD push to Github
+
+******** I WANT TO MAKE 20 PPT, GIVE ME 20 PAGES SLIDES
+
+---
+
+開啟Notebook LLM:
+I need 20 pages slides for hw6 in excalidraw style
+
+---
+
+Add hyperframes skill 
+(全裝)
+
+#hyperframes 
+ create a presentation vedio for (Starpup P*. pdf), with caption and旁白, 專業成熟穩重男子聲音, 翻頁要有特效

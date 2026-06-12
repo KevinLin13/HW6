@@ -1,0 +1,523 @@
+# 50 Startups Dataset Analysis Design
+# Format: YAML
+# Purpose: CRISP-DM + Linear Regression + Feature Selection Design as Code
+
+project:
+  name: "Kaggle 50 Startups Dataset Analysis"
+  version: "1.0"
+  language: "zh-TW"
+  objective: "根據新創公司的支出與所在地區，預測 Profit，並透過五種常用特徵篩選方法優化 Linear Regression 模型。"
+  scope:
+    modeling_algorithm: "Linear Regression"
+    compare_other_algorithms: false
+    focus:
+      - "CRISP-DM 分析流程"
+      - "資料前處理"
+      - "特徵篩選"
+      - "線性迴歸建模"
+      - "迴歸模型評估"
+      - "商業與統計解釋"
+  limitation:
+    - "資料筆數約 50 筆，屬於小型教學資料集。"
+    - "模型結果適合教學展示與方法練習，不宜直接作為真實投資或企業決策依據。"
+    - "特徵篩選結果不代表因果關係。"
+
+dataset:
+  source: "Kaggle"
+  name: "50 Startups"
+  task_type: "Supervised Learning - Regression"
+  target_variable: "Profit"
+  features:
+    numerical:
+      - name: "R&D Spend"
+        description: "研發支出"
+        role: "feature"
+      - name: "Administration"
+        description: "行政管理支出"
+        role: "feature"
+      - name: "Marketing Spend"
+        description: "行銷支出"
+        role: "feature"
+    categorical:
+      - name: "State"
+        description: "公司所在州別"
+        role: "feature"
+  target:
+    name: "Profit"
+    description: "公司獲利"
+    data_type: "numerical"
+
+expert_team:
+  - role: "統計學專家"
+    responsibility:
+      - "檢查樣本數限制"
+      - "檢查 p-value、共線性與模型解釋"
+      - "提醒避免將相關性解讀為因果關係"
+  - role: "機器學習專家"
+    responsibility:
+      - "設計特徵篩選流程"
+      - "避免資料外洩"
+      - "規劃交叉驗證與模型評估"
+  - role: "行銷專家"
+    responsibility:
+      - "解釋 Marketing Spend 的商業意義"
+      - "避免將被排除的行銷變數解讀為不重要"
+  - role: "R&D 專家"
+    responsibility:
+      - "解釋 R&D Spend 與 Profit 的關係"
+      - "提醒模型結果不能直接等同預算配置建議"
+  - role: "行政專家"
+    responsibility:
+      - "解釋 Administration 對營運效率的間接價值"
+      - "提醒行政支出未被選入不代表行政管理不重要"
+  - role: "州長"
+    responsibility:
+      - "解釋 State 作為地區差異代理變數的限制"
+      - "避免過度推論某州一定較有利於獲利"
+
+expert_review_rounds:
+  - round: 1
+    question_by: "統計學專家"
+    question: "50 Startups dataset 只有約 50 筆資料，使用五種特徵篩選方法是否會導致結果不穩定？"
+    answered_by: "機器學習專家"
+    answer: "會有風險，因此應搭配 K-Fold Cross Validation，並且特徵篩選必須只在訓練資料中進行。"
+    decision: "加入避免資料外洩與交叉驗證穩定性檢查。"
+  - round: 2
+    question_by: "行銷專家"
+    question: "若 Marketing Spend 被統計方法排除，是否代表行銷不重要？"
+    answered_by: "統計學專家"
+    answer: "不是。這只代表在此資料、模型與樣本下，Marketing Spend 的額外線性解釋力可能不足。"
+    decision: "加入被排除特徵不等於商業價值不存在的說明。"
+  - round: 3
+    question_by: "R&D 專家"
+    question: "若 R&D Spend 最重要，是否代表公司應將所有資源投入研發？"
+    answered_by: "行銷專家"
+    answer: "不能這樣解釋。模型呈現的是預測關係，不是因果關係，也不是完整的預算配置建議。"
+    decision: "加入模型不能直接作為預算配置唯一依據。"
+  - round: 4
+    question_by: "行政專家"
+    question: "若 Administration 未被選入模型，是否合理？"
+    answered_by: "機器學習專家"
+    answer: "合理。Linear Regression 偏向捕捉直接線性關係，行政支出可能是間接影響。"
+    decision: "加入 Administration 未被選入時的正確解釋。"
+  - round: 5
+    question_by: "州長"
+    question: "State 被保留或排除時，應該如何解釋？"
+    answered_by:
+      - "統計學專家"
+      - "機器學習專家"
+    answer: "State 可作為地區差異的代理變數，但不能推論某州一定比另一州更有利於獲利。"
+    decision: "加入 State 解釋限制與代理變數說明。"
+
+crisp_dm:
+  - step: 1
+    name: "Business Understanding"
+    title: "商業理解"
+    goals:
+      - "預測新創公司的 Profit。"
+      - "找出較適合 Linear Regression 的特徵組合。"
+      - "比較不同特徵篩選方法對模型表現與解釋能力的影響。"
+    business_questions:
+      - "哪些支出項目與 Profit 關係較密切？"
+      - "R&D Spend 是否是最具解釋力的特徵？"
+      - "Marketing Spend 是否能有效協助預測 Profit？"
+      - "Administration 支出是否具有直接線性預測力？"
+      - "State 是否會影響 Profit 的預測結果？"
+    output:
+      - "明確定義分析目標"
+      - "確認只使用 Linear Regression"
+      - "確認特徵篩選為核心分析重點"
+
+  - step: 2
+    name: "Data Understanding"
+    title: "資料理解"
+    checks:
+      - "檢查資料筆數與欄位型態"
+      - "檢查缺失值"
+      - "檢查極端值與異常值"
+      - "觀察 Profit 分布"
+      - "繪製 R&D Spend 與 Profit 散佈圖"
+      - "繪製 Marketing Spend 與 Profit 散佈圖"
+      - "繪製 Administration 與 Profit 散佈圖"
+      - "比較不同 State 的平均 Profit"
+      - "計算數值特徵與 Profit 的相關係數"
+      - "檢查特徵之間是否可能存在共線性"
+    output:
+      - "EDA 摘要"
+      - "初步相關性觀察"
+      - "可能的重要特徵與風險說明"
+
+  - step: 3
+    name: "Data Preparation"
+    title: "資料準備"
+    target:
+      variable: "Profit"
+    candidate_features:
+      - "R&D Spend"
+      - "Administration"
+      - "Marketing Spend"
+      - "State"
+    preprocessing:
+      missing_values:
+        action: "檢查並視情況刪除或補值"
+      categorical_encoding:
+        column: "State"
+        method: "One-Hot Encoding"
+        drop_first: true
+        reason: "避免 Dummy Variable Trap"
+      train_test_split:
+        test_size: 0.2
+        train_size: 0.8
+        random_state: 42
+      cross_validation:
+        method: "K-Fold Cross Validation"
+        recommended_k: 5
+    leakage_control:
+      rule: "特徵篩選只能在訓練資料中進行，不可先使用完整資料挑選特徵。"
+      correct_flow:
+        - "先切分訓練集與測試集"
+        - "僅在訓練集上進行特徵篩選"
+        - "使用篩選後的特徵訓練 Linear Regression"
+        - "使用測試集評估模型表現"
+    output:
+      - "乾淨資料集"
+      - "編碼後特徵矩陣 X"
+      - "目標變數 y"
+      - "訓練集與測試集"
+
+  - step: 4
+    name: "Modeling"
+    title: "建模"
+    algorithm:
+      name: "Linear Regression"
+      formula: "Profit = β0 + β1X1 + β2X2 + β3X3 + ... + ε"
+    excluded_algorithms:
+      - "Decision Tree"
+      - "Random Forest"
+      - "XGBoost"
+      - "Neural Network"
+      - "Support Vector Regression"
+    modeling_focus:
+      - "不同特徵篩選方法選出的特徵是否一致"
+      - "不同特徵組合對 Linear Regression 表現的影響"
+      - "模型結果是否具有合理的統計與商業解釋"
+      - "是否能在簡潔模型與預測表現之間取得平衡"
+    output:
+      - "五組 Linear Regression 模型"
+      - "各模型選入特徵"
+      - "各模型係數與截距"
+
+  - step: 5
+    name: "Evaluation"
+    title: "模型評估"
+    metrics:
+      - name: "MAE"
+        full_name: "Mean Absolute Error"
+        direction: "lower_is_better"
+        description: "平均絕對誤差"
+      - name: "MSE"
+        full_name: "Mean Squared Error"
+        direction: "lower_is_better"
+        description: "平均平方誤差"
+      - name: "RMSE"
+        full_name: "Root Mean Squared Error"
+        direction: "lower_is_better"
+        description: "均方根誤差"
+      - name: "R2"
+        full_name: "R-squared"
+        direction: "higher_is_better"
+        description: "解釋變異比例"
+      - name: "Adjusted_R2"
+        full_name: "Adjusted R-squared"
+        direction: "higher_is_better"
+        description: "修正後 R 平方，適合比較不同特徵數量的模型"
+    evaluation_questions:
+      - "哪一組模型的 RMSE 最低？"
+      - "哪一組模型的 MAE 最低？"
+      - "哪一組模型的 Adjusted R2 較高？"
+      - "選出的特徵是否具有合理商業意義？"
+      - "模型是否過度依賴單一特徵？"
+      - "訓練集與測試集表現是否差距過大？"
+      - "不同資料切分下，特徵選擇結果是否穩定？"
+    selection_rule:
+      primary: "RMSE 與 MAE 較低"
+      secondary: "Adjusted R2 較高"
+      interpretability: "特徵數量較少且具有合理商業解釋者優先"
+    output:
+      - "模型比較表"
+      - "最佳特徵篩選方法"
+      - "最終 Linear Regression 模型建議"
+
+  - step: 6
+    name: "Deployment"
+    title: "部署與應用"
+    deployment_type: "教學展示與方法練習工具"
+    possible_outputs:
+      - "分析報告"
+      - "Jupyter Notebook"
+      - "模型評估表"
+      - "簡易 Profit 預測工具"
+      - "視覺化圖表"
+    warning:
+      - "不建議直接作為真實投資決策工具。"
+      - "不建議直接作為企業預算配置工具。"
+      - "需要更多資料與背景變數才能提升商業應用可靠度。"
+
+feature_selection:
+  methods:
+    - id: "FS01"
+      name: "Correlation-based Feature Selection"
+      chinese_name: "相關係數法"
+      type: "filter"
+      suitable_for: "初步觀察數值特徵與 Profit 的線性關係"
+      target: "Profit"
+      statistic: "Pearson Correlation"
+      selected_features_rule: "選擇與 Profit 相關係數絕對值較高的特徵"
+      advantages:
+        - "簡單直觀"
+        - "容易解釋"
+        - "適合初步篩選"
+      limitations:
+        - "只能看單一特徵與 Profit 的關係"
+        - "無法判斷多個特徵一起放入模型後的效果"
+        - "相關不代表因果"
+      final_model: "Linear Regression"
+
+    - id: "FS02"
+      name: "SelectKBest with f_regression"
+      chinese_name: "單變量統計檢定法"
+      type: "filter"
+      suitable_for: "依照統計分數挑選前 K 個特徵"
+      target: "Profit"
+      statistic: "f_regression"
+      parameter:
+        k: 3
+      selected_features_rule: "選擇 f_regression 分數最高的前 K 個特徵"
+      advantages:
+        - "可量化每個特徵與 Profit 的關係"
+        - "容易搭配 sklearn"
+        - "適合作為基準比較"
+      limitations:
+        - "不考慮特徵之間的交互與共線性"
+        - "K 值需要自行設定"
+        - "小樣本下結果可能不穩定"
+      final_model: "Linear Regression"
+
+    - id: "FS03"
+      name: "Backward Elimination"
+      chinese_name: "反向消去法"
+      type: "wrapper/statistical"
+      suitable_for: "根據 p-value 建立較精簡的 Linear Regression 模型"
+      target: "Profit"
+      statistic: "p-value"
+      threshold:
+        p_value: 0.05
+      process:
+        - "一開始放入所有候選特徵"
+        - "建立 Linear Regression"
+        - "查看每個特徵的 p-value"
+        - "移除 p-value 最大且不顯著的特徵"
+        - "重新建立模型"
+        - "重複直到剩下的特徵皆符合門檻"
+      advantages:
+        - "適合 Linear Regression"
+        - "可從統計顯著性角度解釋特徵"
+        - "有助於建立較簡潔的模型"
+      limitations:
+        - "p-value 容易受到樣本數影響"
+        - "p-value 也可能受到共線性影響"
+        - "移除特徵不代表該特徵在商業上不重要"
+      final_model: "Linear Regression"
+
+    - id: "FS04"
+      name: "Recursive Feature Elimination"
+      abbreviation: "RFE"
+      chinese_name: "遞迴式特徵消除法"
+      type: "wrapper"
+      suitable_for: "透過模型遞迴挑選特徵組合"
+      base_estimator: "Linear Regression"
+      parameter:
+        n_features_to_select: 3
+      process:
+        - "使用所有特徵建立 Linear Regression"
+        - "根據模型係數或特徵重要性排序"
+        - "移除影響力較低的特徵"
+        - "重新訓練模型"
+        - "重複直到剩下指定數量的特徵"
+      advantages:
+        - "會考慮特徵放入模型後的組合效果"
+        - "適合與 Linear Regression 搭配"
+        - "可比較不同特徵數量下的模型表現"
+      limitations:
+        - "需要事先設定保留幾個特徵"
+        - "結果可能受到資料切分影響"
+        - "小樣本下穩定性需透過交叉驗證檢查"
+      final_model: "Linear Regression"
+
+    - id: "FS05"
+      name: "Lasso-based Feature Selection"
+      chinese_name: "Lasso 特徵篩選法"
+      type: "embedded"
+      suitable_for: "透過 L1 正則化篩選特徵，再放入 Linear Regression"
+      selector_model: "LassoCV"
+      final_model: "Linear Regression"
+      preprocessing_requirement:
+        - "數值特徵通常需要標準化"
+      selected_features_rule: "係數不為 0 的特徵保留，係數為 0 的特徵移除"
+      advantages:
+        - "可自動進行特徵篩選"
+        - "可同時評估多個特徵"
+        - "有助於建立較精簡的模型"
+      limitations:
+        - "結果會受到正則化強度影響"
+        - "小樣本下仍需謹慎解釋"
+        - "Lasso 在本專案中是特徵篩選工具，不是最終模型"
+
+experiments:
+  - model_id: "Model_1"
+    feature_selection_method: "Correlation-based Feature Selection"
+    final_algorithm: "Linear Regression"
+    purpose: "觀察線性相關性高的特徵是否能有效預測 Profit"
+    selected_features: "to_be_filled_after_training"
+    metrics: "to_be_filled_after_evaluation"
+
+  - model_id: "Model_2"
+    feature_selection_method: "SelectKBest / f_regression"
+    final_algorithm: "Linear Regression"
+    purpose: "根據單變量統計分數選出特徵"
+    selected_features: "to_be_filled_after_training"
+    metrics: "to_be_filled_after_evaluation"
+
+  - model_id: "Model_3"
+    feature_selection_method: "Backward Elimination"
+    final_algorithm: "Linear Regression"
+    purpose: "根據 p-value 建立統計上較精簡的模型"
+    selected_features: "to_be_filled_after_training"
+    metrics: "to_be_filled_after_evaluation"
+
+  - model_id: "Model_4"
+    feature_selection_method: "Recursive Feature Elimination"
+    final_algorithm: "Linear Regression"
+    purpose: "透過模型遞迴挑選特徵組合"
+    selected_features: "to_be_filled_after_training"
+    metrics: "to_be_filled_after_evaluation"
+
+  - model_id: "Model_5"
+    feature_selection_method: "Lasso-based Feature Selection"
+    final_algorithm: "Linear Regression"
+    purpose: "透過 L1 正則化篩選特徵，再放入 Linear Regression"
+    selected_features: "to_be_filled_after_training"
+    metrics: "to_be_filled_after_evaluation"
+
+evaluation_table_template:
+  columns:
+    - "model_id"
+    - "feature_selection_method"
+    - "selected_features"
+    - "MAE"
+    - "MSE"
+    - "RMSE"
+    - "R2"
+    - "Adjusted_R2"
+    - "interpretation"
+  rows:
+    - model_id: "Model_1"
+      feature_selection_method: "Correlation-based Feature Selection"
+      selected_features: "to_be_filled"
+      MAE: "to_be_filled"
+      MSE: "to_be_filled"
+      RMSE: "to_be_filled"
+      R2: "to_be_filled"
+      Adjusted_R2: "to_be_filled"
+      interpretation: "to_be_filled"
+    - model_id: "Model_2"
+      feature_selection_method: "SelectKBest / f_regression"
+      selected_features: "to_be_filled"
+      MAE: "to_be_filled"
+      MSE: "to_be_filled"
+      RMSE: "to_be_filled"
+      R2: "to_be_filled"
+      Adjusted_R2: "to_be_filled"
+      interpretation: "to_be_filled"
+    - model_id: "Model_3"
+      feature_selection_method: "Backward Elimination"
+      selected_features: "to_be_filled"
+      MAE: "to_be_filled"
+      MSE: "to_be_filled"
+      RMSE: "to_be_filled"
+      R2: "to_be_filled"
+      Adjusted_R2: "to_be_filled"
+      interpretation: "to_be_filled"
+    - model_id: "Model_4"
+      feature_selection_method: "Recursive Feature Elimination"
+      selected_features: "to_be_filled"
+      MAE: "to_be_filled"
+      MSE: "to_be_filled"
+      RMSE: "to_be_filled"
+      R2: "to_be_filled"
+      Adjusted_R2: "to_be_filled"
+      interpretation: "to_be_filled"
+    - model_id: "Model_5"
+      feature_selection_method: "Lasso-based Feature Selection"
+      selected_features: "to_be_filled"
+      MAE: "to_be_filled"
+      MSE: "to_be_filled"
+      RMSE: "to_be_filled"
+      R2: "to_be_filled"
+      Adjusted_R2: "to_be_filled"
+      interpretation: "to_be_filled"
+
+business_interpretation_rules:
+  r_and_d_spend:
+    if_selected: "代表在此資料集中，R&D Spend 對 Profit 可能具有較高的線性預測價值。"
+    caution: "不能解釋為企業應將所有資源投入研發，也不能直接證明研發支出一定造成獲利上升。"
+  marketing_spend:
+    if_selected: "可能代表行銷支出對 Profit 有輔助預測效果。"
+    if_removed: "不代表行銷不重要，可能只是額外線性解釋力不足或與其他特徵存在重疊。"
+  administration:
+    if_selected: "可能代表行政管理支出對 Profit 有一定線性預測力。"
+    if_removed: "應解釋為在此資料集中，Administration 對 Profit 的直接線性預測力可能較有限，不代表行政管理不重要。"
+  state:
+    if_selected: "可視為地區環境差異的代理變數。"
+    if_removed: "不代表地區因素完全不重要，只代表在此資料與模型設定下額外預測效果有限。"
+    caution: "不可推論某州一定比另一州更容易獲利。"
+
+implementation_notes:
+  recommended_python_libraries:
+    - "pandas"
+    - "numpy"
+    - "scikit-learn"
+    - "statsmodels"
+    - "matplotlib"
+  sklearn_components:
+    preprocessing:
+      - "OneHotEncoder"
+      - "StandardScaler"
+      - "ColumnTransformer"
+    model:
+      - "LinearRegression"
+    feature_selection:
+      - "SelectKBest"
+      - "f_regression"
+      - "RFE"
+      - "LassoCV"
+    validation:
+      - "train_test_split"
+      - "KFold"
+      - "cross_val_score"
+    metrics:
+      - "mean_absolute_error"
+      - "mean_squared_error"
+      - "r2_score"
+
+final_conclusion:
+  summary:
+    - "本專案以 CRISP-DM 為分析架構。"
+    - "建模階段僅使用 Linear Regression。"
+    - "透過五種常用特徵篩選方法比較不同特徵組合。"
+    - "評估時應同時觀察 MAE、RMSE、R2 與 Adjusted R2。"
+    - "模型結果應謹慎解釋，不可過度推論為因果關係。"
+  best_practice:
+    - "特徵篩選應在訓練流程內完成。"
+    - "小樣本資料應搭配交叉驗證。"
+    - "最終模型選擇需兼顧預測表現、模型簡潔性與商業解釋性。"
