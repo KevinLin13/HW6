@@ -2,6 +2,8 @@
 
 本專案使用 Kaggle 的 `50 Startups` 資料集，依循 **CRISP-DM** 流程，以線性迴歸解釋並預測新創公司的利潤。專案比較五種特徵選擇演算法，評估其預測效能，並產生分析表格、圖表、預測結果與最終報告。
 
+![Kaggle 50 Startups CRISP-DM 分析資訊圖表](Infographics.png)
+
 ## 專案目標
 
 - 根據新創公司的支出與所在地預測 `Profit`。
@@ -136,6 +138,7 @@ python analyze_50_startups.py
 | `50_Startups.csv` | 原始資料集 |
 | `50_startups_crispdm_linear_regression_design.yaml` | CRISP-DM 與實驗設計規格 |
 | `50_startups_analysis_report.md` | 自動產生的原始分析報告；內容已整合至本 README |
+| `Infographics.png` | Kaggle 50 Startups CRISP-DM 分析資訊圖表 |
 | `outputs/model_comparison.csv` | 模型排名、評估指標與選定特徵 |
 | `outputs/model_coefficients.csv` | 模型截距與特徵係數 |
 | `outputs/test_predictions.csv` | 測試集實際利潤與預測利潤 |
