@@ -1,2 +1,6 @@
 __pycache__/
 *.py[cod]
+.agents/
+.tools/
+videos/
+skills-lock.json

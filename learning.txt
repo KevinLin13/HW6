@@ -1,0 +1,1897 @@
+````markdown
+# Kaggle 50 Startups Dataset：CRISP-DM 學習總整理  
+## 21 個學習問題 + 1 個補充學習問題
+
+---
+
+## 專案主題
+
+本學習專案以 Kaggle 50 Startups Dataset 為分析對象，依循 CRISP-DM 流程進行資料分析與機器學習建模。
+
+資料集主要欄位包含：
+
+| 欄位 | 中文意義 | 角色 | 資料型態 |
+|---|---|---|---|
+| R&D Spend | 研發支出 | 特徵變數 X | 數值型 |
+| Administration | 行政支出 | 特徵變數 X | 數值型 |
+| Marketing Spend | 行銷支出 | 特徵變數 X | 數值型 |
+| State | 公司所在州別 | 特徵變數 X | 類別型 |
+| Profit | 公司獲利 | 目標變數 y | 數值型 |
+
+本專案的核心目標是：
+
+> 使用 `R&D Spend`、`Administration`、`Marketing Spend`、`State` 等資訊，建立 Linear Regression 模型預測 `Profit`，並透過多種特徵篩選方法理解哪些特徵與公司獲利較有關。
+
+---
+
+## CRISP-DM 六大階段對應
+
+| CRISP-DM 階段 | 本專案學習重點 |
+|---|---|
+| Business Understanding | 定義商業問題與預測目標 |
+| Data Understanding | 理解資料欄位、資料型態、資料分布與相關性 |
+| Data Preparation | 區分 X/y、One-Hot Encoding、Train/Test Split、避免資料外洩 |
+| Modeling | 特徵篩選與 Linear Regression 建模 |
+| Evaluation | 使用 MAE、RMSE、R²、Adjusted R² 評估模型 |
+| Deployment | 整理成果為報告、Notebook 或簡易預測工具 |
+
+---
+
+# 前置觀念  
+## 為什麼這是回歸問題，而不是分類問題？
+
+這是回歸問題，因為目標變數 `Profit` 是連續型數值，而不是類別標籤。
+
+例如：
+
+```text
+Profit = 192261.83
+Profit = 191792.06
+Profit = 166187.94
+```
+
+這些值可以進行大小比較、加減運算、誤差計算，因此屬於連續數值。
+
+回歸問題通常是在預測：
+
+| 預測目標 | 例子 |
+|---|---|
+| 房價 | 預測一間房子多少錢 |
+| 銷售額 | 預測下個月營收 |
+| 氣溫 | 預測明天幾度 |
+| 成績 | 預測學生考幾分 |
+| 獲利 | 預測公司 Profit |
+
+分類問題則是預測類別，例如：
+
+| 問題 | 預測結果 |
+|---|---|
+| 是否會倒閉 | 會 / 不會 |
+| 公司獲利等級 | 高獲利 / 中獲利 / 低獲利 |
+| Email 是否為垃圾信 | 垃圾信 / 正常信 |
+
+因此，50 Startups 原始任務是：
+
+> 根據公司支出與州別資訊，預測公司 Profit 的具體金額。
+
+所以它是回歸問題。
+
+如果把 `Profit` 轉換成：
+
+```text
+高獲利 / 中獲利 / 低獲利
+```
+
+才會變成分類問題。
+
+---
+
+# 學習問題 1  
+## 在 50 Startups 資料集中，我們到底想預測什麼？這個問題的商業目標是什麼？
+
+## 回答
+
+在 Kaggle 50 Startups 資料集中，我們想預測的目標是：
+
+```text
+Profit
+```
+
+也就是一家新創公司的獲利金額。
+
+資料中提供的可用資訊包含：
+
+| 欄位 | 意義 | 角色 |
+|---|---|---|
+| R&D Spend | 研發支出 | 特徵變數 |
+| Administration | 行政支出 | 特徵變數 |
+| Marketing Spend | 行銷支出 | 特徵變數 |
+| State | 公司所在州別 | 特徵變數 |
+| Profit | 公司獲利 | 目標變數 |
+
+本專案的基本問題是：
+
+> 能不能根據一家公司的研發支出、行政支出、行銷支出與所在地區，預測它的 Profit？
+
+這是一個商業問題，因為企業在經營時常需要判斷：
+
+> 資源應該投入在哪裡，才可能帶來較高獲利？
+
+對應的商業問題包括：
+
+| 商業問題 | 對應到資料欄位 |
+|---|---|
+| 研發投入越高，獲利是否越高？ | R&D Spend |
+| 行銷投入是否能幫助提升獲利？ | Marketing Spend |
+| 行政支出是否與獲利有明顯關係？ | Administration |
+| 不同州別是否會影響獲利表現？ | State |
+
+正式專案目標可寫成：
+
+> 本專案以 Kaggle 50 Startups 資料集為分析對象，依循 CRISP-DM 流程，使用 Linear Regression 建立 Profit 預測模型，並透過五種常見特徵篩選方法，比較不同特徵組合對模型表現的影響，進一步理解研發、行政、行銷與州別等因素和公司獲利之間的關係。
+
+---
+
+# 學習問題 2  
+## 這份資料中，哪些欄位是特徵變數 X？哪一個欄位是目標變數 y？
+
+## 回答
+
+在機器學習中：
+
+| 名稱 | 意義 |
+|---|---|
+| X | 特徵變數，也就是模型輸入 |
+| y | 目標變數，也就是模型要預測的答案 |
+
+在 50 Startups 資料集中：
+
+```text
+X = R&D Spend, Administration, Marketing Spend, State
+y = Profit
+```
+
+欄位角色整理如下：
+
+| 欄位名稱 | 中文意義 | 變數角色 | 資料型態 |
+|---|---|---|---|
+| R&D Spend | 研發支出 | 特徵變數 X | 數值型 |
+| Administration | 行政支出 | 特徵變數 X | 數值型 |
+| Marketing Spend | 行銷支出 | 特徵變數 X | 數值型 |
+| State | 公司所在州別 | 特徵變數 X | 類別型 |
+| Profit | 公司獲利 | 目標變數 y | 數值型 |
+
+Python 寫法：
+
+```python
+X = df[["R&D Spend", "Administration", "Marketing Spend", "State"]]
+y = df["Profit"]
+```
+
+也可以寫成：
+
+```python
+X = df.drop("Profit", axis=1)
+y = df["Profit"]
+```
+
+本題結論：
+
+> 使用 `R&D Spend`、`Administration`、`Marketing Spend`、`State` 作為特徵變數 X，預測連續型目標變數 `Profit`，因此這是一個監督式學習中的回歸問題。
+
+---
+
+# 學習問題 3  
+## 數值型特徵與類別型特徵有什麼差異？為什麼 State 不能直接放進 Linear Regression？
+
+## 回答
+
+在 50 Startups 資料集中，特徵變數可以分成兩類：
+
+| 類型 | 欄位 | 說明 |
+|---|---|---|
+| 數值型特徵 | R&D Spend、Administration、Marketing Spend | 本身就是數字，可以直接進行數學運算 |
+| 類別型特徵 | State | 是文字類別，例如 New York、California、Florida |
+
+Linear Regression 只能處理數值，因此文字類別資料不能直接放進模型。
+
+錯誤做法是將州別直接編成：
+
+| State | 編碼 |
+|---|---|
+| New York | 1 |
+| California | 2 |
+| Florida | 3 |
+
+這樣會讓模型誤以為：
+
+```text
+Florida > California > New York
+```
+
+但州別之間沒有大小順序，因此這樣是不正確的。
+
+正確做法是使用 One-Hot Encoding：
+
+| State_California | State_Florida | State_New York |
+|---:|---:|---:|
+| 0 | 0 | 1 |
+| 1 | 0 | 0 |
+| 0 | 1 | 0 |
+
+對 Linear Regression 來說，通常會使用：
+
+```python
+pd.get_dummies(X, columns=["State"], drop_first=True)
+```
+
+其中：
+
+```python
+drop_first=True
+```
+
+表示刪掉其中一個類別作為參考組，以避免 Dummy Variable Trap。
+
+本題結論：
+
+> `R&D Spend`、`Administration`、`Marketing Spend` 是數值型特徵，可以直接進入 Linear Regression；`State` 是類別型特徵，必須先透過 One-Hot Encoding 轉換成 0/1 欄位。
+
+---
+
+# 學習問題 4  
+## 在建模之前，為什麼要先做資料觀察？我們應該觀察哪些重點？
+
+## 回答
+
+在建立 Linear Regression 模型之前，不能直接把資料丟進模型。  
+因為模型結果好不好，往往取決於我們是否先理解資料的結構、品質與變數關係。
+
+資料觀察的目的有三個：
+
+1. 確認資料是否乾淨  
+2. 理解每個欄位的分布情形  
+3. 初步判斷哪些特徵可能與 `Profit` 有關  
+
+建議觀察項目如下：
+
+| 觀察項目 | 目的 |
+|---|---|
+| `df.head()` | 查看前幾筆資料 |
+| `df.info()` | 查看資料筆數、欄位型態、缺失值 |
+| `df.isnull().sum()` | 檢查是否有缺失值 |
+| `df.describe()` | 查看平均數、標準差、最大值、最小值 |
+| `df.corr(numeric_only=True)` | 觀察數值欄位之間的相關性 |
+
+Python 範例：
+
+```python
+df.head()
+df.info()
+df.describe()
+df.isnull().sum()
+df.corr(numeric_only=True)
+```
+
+資料觀察的重點不是馬上建立模型，而是先回答：
+
+> 這份資料是否乾淨？欄位是否合理？哪些變數可能與 Profit 關係較明顯？
+
+本題結論：
+
+> 在建模之前做資料觀察，是為了確認資料品質、理解欄位型態、檢查缺失值、觀察數值分布，並初步判斷哪些特徵可能與 `Profit` 有關。
+
+---
+
+# 學習問題 5  
+## 這份資料的初步觀察結果是什麼？哪些特徵看起來可能比較重要？
+
+## 回答
+
+根據 50 Startups 資料集，基本結構如下：
+
+| 項目 | 結果 |
+|---|---:|
+| 資料筆數 | 50 筆 |
+| 欄位數 | 5 欄 |
+| 缺失值 | 無 |
+| 數值欄位 | R&D Spend、Administration、Marketing Spend、Profit |
+| 類別欄位 | State |
+
+這份資料乾淨且小型，很適合用來學習 CRISP-DM、回歸模型與特徵篩選。
+
+`Profit` 的基本統計結果大致如下：
+
+| 指標 | 數值 |
+|---|---:|
+| 最小值 | 14,681.40 |
+| 中位數 | 107,978.19 |
+| 平均數 | 112,012.64 |
+| 最大值 | 192,261.83 |
+| 標準差 | 40,306.18 |
+
+這代表不同公司的獲利差異明顯，模型有學習空間。
+
+三個主要數值特徵的觀察：
+
+| 特徵 | 觀察重點 |
+|---|---|
+| R&D Spend | 差異很大，有些公司為 0，有些超過 160,000 |
+| Marketing Spend | 範圍也很大，可能與 Profit 有關 |
+| Administration | 變化範圍相對較小，與 Profit 關係較弱 |
+
+州別分布大致平均：
+
+| State | 筆數 |
+|---|---:|
+| New York | 17 |
+| California | 17 |
+| Florida | 16 |
+
+數值特徵與 `Profit` 的相關係數通常如下：
+
+| 特徵 | 與 Profit 的相關係數 |
+|---|---:|
+| R&D Spend | 0.9729 |
+| Marketing Spend | 0.7478 |
+| Administration | 0.2007 |
+
+初步解讀：
+
+| 特徵 | 解讀 |
+|---|---|
+| R&D Spend | 與 Profit 關係最強，可能是最重要特徵 |
+| Marketing Spend | 也有明顯正相關 |
+| Administration | 線性關係較弱 |
+
+本題結論：
+
+> `R&D Spend` 可能是預測 `Profit` 最重要的特徵；`Marketing Spend` 也具有一定解釋力；`Administration` 的線性關係較弱；`State` 則需要經過 One-Hot Encoding 後才能進一步評估。
+
+---
+
+# 學習問題 6  
+## 資料觀察之後，為什麼不能直接用全部資料訓練模型？為什麼要切分訓練集與測試集？
+
+## 回答
+
+不能直接把全部資料都拿來訓練模型，因為我們不只想知道模型能不能記住資料，更想知道模型能不能對沒看過的新資料做出合理預測。
+
+資料應切分為：
+
+| 資料集 | 用途 |
+|---|---|
+| Training Set 訓練集 | 給模型學習規律 |
+| Testing Set 測試集 | 檢查模型對未看過資料的預測能力 |
+
+常見切分比例：
+
+| 資料集 | 比例 | 筆數 |
+|---|---:|---:|
+| Training Set | 80% | 約 40 筆 |
+| Testing Set | 20% | 約 10 筆 |
+
+Python 寫法：
+
+```python
+from sklearn.model_selection import train_test_split
+
+X = df[["R&D Spend", "Administration", "Marketing Spend", "State"]]
+y = df["Profit"]
+
+X = pd.get_dummies(X, columns=["State"], drop_first=True)
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y,
+    test_size=0.2,
+    random_state=42
+)
+```
+
+正確流程：
+
+```text
+原始資料
+↓
+區分 X 與 y
+↓
+處理類別特徵
+↓
+切分 Train/Test
+↓
+只用 Training Set 做特徵篩選與模型訓練
+↓
+用 Testing Set 評估模型
+```
+
+本題結論：
+
+> 先切分訓練集與測試集，再只用訓練集進行特徵篩選與模型訓練，最後用測試集評估模型表現，才能避免模型只是記住資料而不是學到一般規律。
+
+---
+
+# 學習問題 7  
+## 什麼是資料外洩 Data Leakage？為什麼它會讓模型評估結果看起來過度樂觀？
+
+## 回答
+
+資料外洩 Data Leakage 是指：
+
+> 模型在訓練過程中，不小心使用到原本不應該知道的資訊，尤其是測試集或未來資料的資訊。
+
+在 50 Startups 專案中，最容易發生資料外洩的地方是特徵篩選。
+
+錯誤流程：
+
+```text
+全部資料
+↓
+計算特徵與 Profit 的相關係數
+↓
+挑選最相關的特徵
+↓
+切分訓練集與測試集
+↓
+訓練模型
+↓
+測試模型
+```
+
+這樣雖然測試集沒有直接拿來訓練模型，但已經參與了特徵選擇，因此會造成資料外洩。
+
+正確流程：
+
+```text
+全部資料
+↓
+先切分訓練集與測試集
+↓
+只用訓練集做特徵篩選
+↓
+用訓練集訓練模型
+↓
+用測試集評估模型
+```
+
+其他可能造成資料外洩的步驟：
+
+| 步驟 | 錯誤做法 | 正確做法 |
+|---|---|---|
+| 標準化 | 用全部資料計算平均數與標準差 | 只用訓練集 fit，再轉換測試集 |
+| 缺失值補值 | 用全部資料計算補值規則 | 只用訓練集建立補值規則 |
+| 特徵篩選 | 用全部資料挑特徵 | 只用訓練集挑特徵 |
+| 模型調參 | 反覆看測試集結果調整模型 | 使用驗證集或交叉驗證 |
+| One-Hot Encoding | 正式情境中直接看全部類別 | 使用 Pipeline 較嚴謹 |
+
+本題結論：
+
+> 資料外洩會讓模型提前偷看到測試集資訊，使評估結果看起來比實際情況更好。測試集只能在最後評估時使用。
+
+---
+
+# 學習問題 8  
+## 在 50 Startups 中，資料準備的標準流程應該怎麼設計？
+
+## 回答
+
+資料準備流程可以分成 5 個步驟：
+
+```text
+1. 讀取資料
+2. 區分 X 與 y
+3. 處理類別特徵 State
+4. 切分訓練集與測試集
+5. 準備進入特徵篩選與建模
+```
+
+完整 Python 範例：
+
+```python
+import pandas as pd
+from sklearn.model_selection import train_test_split
+
+# 1. 讀取資料
+df = pd.read_csv("50_Startups(1).csv")
+
+# 2. 區分 X 與 y
+X = df.drop("Profit", axis=1)
+y = df["Profit"]
+
+# 3. 類別變數 One-Hot Encoding
+X = pd.get_dummies(X, columns=["State"], drop_first=True)
+
+# 4. 切分訓練集與測試集
+X_train, X_test, y_train, y_test = train_test_split(
+    X,
+    y,
+    test_size=0.2,
+    random_state=42
+)
+
+# 5. 檢查切分結果
+print("X_train:", X_train.shape)
+print("X_test:", X_test.shape)
+print("y_train:", y_train.shape)
+print("y_test:", y_test.shape)
+```
+
+切分後可能得到：
+
+```text
+X_train: (40, 5)
+X_test: (10, 5)
+y_train: (40,)
+y_test: (10,)
+```
+
+為什麼 X 變成 5 個欄位？
+
+原始特徵有 4 個：
+
+```text
+R&D Spend
+Administration
+Marketing Spend
+State
+```
+
+`State` 有三個類別，經過 One-Hot Encoding 並使用 `drop_first=True` 後，會變成兩個 dummy 欄位。
+
+因此最後特徵可能是：
+
+| 特徵 |
+|---|
+| R&D Spend |
+| Administration |
+| Marketing Spend |
+| State_Florida |
+| State_New York |
+
+本題結論：
+
+> 50 Startups 的資料準備重點是將 `Profit` 分離為目標變數 y，將其他欄位作為特徵 X，對 `State` 進行 One-Hot Encoding，並切分訓練集與測試集。
+
+---
+
+# 學習問題 9  
+## 什麼是特徵篩選？為什麼 Linear Regression 建模前需要做特徵篩選？
+
+## 回答
+
+特徵篩選 Feature Selection 是指：
+
+> 從所有可用特徵中，挑選出對預測目標 `Profit` 較有幫助的特徵，並排除影響較弱、重複性高或可能干擾模型的特徵。
+
+在 50 Startups 中，候選特徵包括：
+
+| 特徵 |
+|---|
+| R&D Spend |
+| Administration |
+| Marketing Spend |
+| State_Florida |
+| State_New York |
+
+做特徵篩選的原因：
+
+## 1. 幫助模型更簡潔
+
+完整模型可能是：
+
+```text
+Profit =
+b0
++ b1 × R&D Spend
++ b2 × Administration
++ b3 × Marketing Spend
++ b4 × State_Florida
++ b5 × State_New York
+```
+
+如果篩選後只留下：
+
+```text
+R&D Spend
+Marketing Spend
+```
+
+模型會更容易解釋。
+
+## 2. 減少不必要的雜訊
+
+不是每個欄位都一定有助於預測 `Profit`。  
+例如 `Administration` 與 `Profit` 的相關係數較低，可能對預測幫助有限。
+
+## 3. 降低過度配適風險
+
+50 Startups 只有 50 筆資料。  
+特徵太多時，模型可能過度貼合訓練資料，而不是學到一般規律。
+
+## 4. 提升模型解釋性
+
+Linear Regression 的優點是可解釋性強，每個特徵都有係數。  
+特徵篩選能幫助我們找出更穩定、更合理的解釋變數。
+
+本專案建議使用五種特徵篩選方法：
+
+| 方法 | 核心概念 |
+|---|---|
+| 相關係數法 | 挑選與 `Profit` 線性關係較強的特徵 |
+| SelectKBest / f_regression | 用統計分數挑選特徵 |
+| Backward Elimination | 根據 p-value 逐步移除不顯著特徵 |
+| RFE | 反覆訓練模型並淘汰較弱特徵 |
+| Lasso-based Selection | 透過 L1 正則化讓不重要特徵係數趨近於 0 |
+
+本題結論：
+
+> Linear Regression 建模前做特徵篩選，是為了讓模型更簡潔、降低雜訊、減少過度配適風險，並提升模型解釋性。
+
+---
+
+# 學習問題 10  
+## 第一種特徵篩選方法「相關係數法」是什麼？它如何判斷哪些特徵與 Profit 關係較強？
+
+## 回答
+
+相關係數法 Correlation-based Feature Selection 是最直覺、最常見的特徵篩選方法之一。
+
+核心概念是：
+
+> 如果某個特徵和目標變數 `Profit` 的相關係數越高，代表它和 `Profit` 的線性關係越強，可能越適合拿來預測。
+
+相關係數範圍：
+
+```text
+-1 到 1
+```
+
+解讀方式：
+
+| 相關係數 | 意義 |
+|---:|---|
+| 接近 1 | 強正相關 |
+| 接近 0 | 線性關係很弱 |
+| 接近 -1 | 強負相關 |
+
+在 50 Startups 中，常見結果如下：
+
+| 特徵 | 與 Profit 的相關係數 | 解讀 |
+|---|---:|---|
+| R&D Spend | 0.9729 | 非常強的正相關 |
+| Marketing Spend | 0.7478 | 明顯正相關 |
+| Administration | 0.2007 | 線性關係較弱 |
+
+Python 寫法：
+
+```python
+corr_features = (
+    df.corr(numeric_only=True)["Profit"]
+    .drop("Profit")
+    .sort_values(ascending=False)
+)
+
+print(corr_features)
+```
+
+更嚴謹的做法是只用訓練集：
+
+```python
+corr_features = (
+    X_train.join(y_train)
+    .corr(numeric_only=True)["Profit"]
+    .drop("Profit")
+    .abs()
+    .sort_values(ascending=False)
+)
+
+print(corr_features)
+```
+
+相關係數法的優點：
+
+| 優點 | 說明 |
+|---|---|
+| 簡單直覺 | 容易理解 |
+| 適合初步觀察 | 快速找出可能重要的數值特徵 |
+| 計算速度快 | 不需要複雜模型 |
+| 適合 Linear Regression | 因為都重視線性關係 |
+
+限制：
+
+| 限制 | 說明 |
+|---|---|
+| 只能看線性關係 | 非線性關係可能看不出來 |
+| 主要適用數值特徵 | `State` 不能直接用原始文字計算 |
+| 容易受極端值影響 | 少數異常值可能改變相關係數 |
+| 不能代表因果 | 高相關不等於因果關係 |
+
+本題結論：
+
+> 根據相關係數法，`R&D Spend` 通常是最值得保留的特徵，其次是 `Marketing Spend`，而 `Administration` 的重要性相對較低。
+
+---
+
+# 學習問題 11  
+## 第二種特徵篩選方法 SelectKBest / f_regression 是什麼？它和相關係數法有什麼不同？
+
+## 回答
+
+`SelectKBest` 是 sklearn 提供的特徵篩選工具，它會根據指定的統計評分方法，從所有特徵中挑選分數最高的前 K 個特徵。
+
+在回歸問題中，常搭配：
+
+```python
+f_regression
+```
+
+完整形式：
+
+```python
+SelectKBest(score_func=f_regression, k=2)
+```
+
+意思是：
+
+> 使用 `f_regression` 計算每個特徵和目標變數 `Profit` 的統計關係，然後選出分數最高的 K 個特徵。
+
+和相關係數法比較：
+
+| 方法 | 判斷方式 | 適合用途 |
+|---|---|---|
+| 相關係數法 | 看兩個變數的線性相關程度 | 初步觀察、解釋直覺 |
+| SelectKBest / f_regression | 用統計分數評估特徵與目標的關係 | 建模前正式特徵篩選 |
+
+Python 範例：
+
+```python
+from sklearn.feature_selection import SelectKBest, f_regression
+
+selector = SelectKBest(score_func=f_regression, k=2)
+selector.fit(X_train, y_train)
+
+selected_features = X_train.columns[selector.get_support()]
+print(selected_features)
+```
+
+查看每個特徵的分數：
+
+```python
+import pandas as pd
+
+scores = pd.DataFrame({
+    "Feature": X_train.columns,
+    "Score": selector.scores_,
+    "P-value": selector.pvalues_
+}).sort_values(by="Score", ascending=False)
+
+print(scores)
+```
+
+注意：
+
+```python
+selector.fit(X_train, y_train)
+```
+
+不能寫成：
+
+```python
+selector.fit(X, y)
+```
+
+因為特徵篩選只能使用訓練集，不能偷看測試集。
+
+本題結論：
+
+> `SelectKBest / f_regression` 會根據每個特徵與 `Profit` 的統計關係給分，並選出分數最高的前 K 個特徵。它通常會選出 `R&D Spend`，並可能選出 `Marketing Spend`。
+
+---
+
+# 學習問題 12  
+## 第三種特徵篩選方法 Backward Elimination 是什麼？為什麼它會使用 p-value 逐步刪除特徵？
+
+## 回答
+
+Backward Elimination 向後消去法是一種常見的特徵篩選方法。
+
+核心概念是：
+
+> 一開始先把所有特徵都放進模型，然後根據每個特徵的 p-value，逐步刪除統計上較不顯著的特徵，直到剩下較有解釋力的特徵。
+
+流程如下：
+
+```text
+1. 先把所有特徵放進 Linear Regression
+2. 檢查每個特徵的 p-value
+3. 找出 p-value 最大的特徵
+4. 如果該 p-value 大於設定門檻，例如 0.05，就刪除該特徵
+5. 重新建立模型
+6. 重複上述步驟，直到所有留下的特徵 p-value 都小於門檻
+```
+
+p-value 解讀：
+
+| p-value | 解讀 |
+|---:|---|
+| 小於 0.05 | 通常視為統計上顯著 |
+| 大於 0.05 | 可能不顯著，考慮移除 |
+
+和其他方法比較：
+
+| 方法 | 判斷方式 | 是否考慮多特徵共同影響 |
+|---|---|---|
+| 相關係數法 | 單一特徵與 Profit 的線性相關 | 否 |
+| SelectKBest | 單一特徵與 Profit 的統計分數 | 否 |
+| Backward Elimination | 多變量模型中的 p-value | 是 |
+
+Python 範例：
+
+```python
+import statsmodels.api as sm
+
+X_train_sm = sm.add_constant(X_train)
+
+model = sm.OLS(y_train, X_train_sm).fit()
+
+print(model.summary())
+```
+
+自動化版本：
+
+```python
+import statsmodels.api as sm
+
+def backward_elimination(X, y, significance_level=0.05):
+    selected_features = list(X.columns)
+
+    while True:
+        X_sm = sm.add_constant(X[selected_features])
+        model = sm.OLS(y, X_sm).fit()
+
+        p_values = model.pvalues.drop("const")
+        max_p_value = p_values.max()
+
+        if max_p_value > significance_level:
+            removed_feature = p_values.idxmax()
+            selected_features.remove(removed_feature)
+            print(f"移除特徵：{removed_feature}，p-value = {max_p_value:.4f}")
+        else:
+            break
+
+    return selected_features, model
+
+selected_features, final_model = backward_elimination(X_train, y_train)
+
+print("最終保留特徵：", selected_features)
+print(final_model.summary())
+```
+
+優點：
+
+| 優點 | 說明 |
+|---|---|
+| 解釋性強 | 可用 p-value 說明為何刪除特徵 |
+| 適合 Linear Regression | 與線性模型的統計解釋搭配良好 |
+| 考慮多特徵共同影響 | 不只看單一特徵 |
+| 結果容易寫進報告 | 可清楚說明篩選過程 |
+
+限制：
+
+| 限制 | 說明 |
+|---|---|
+| 依賴 p-value | p-value 受樣本數與共線性影響 |
+| 小資料不穩定 | 50 筆資料容易受切分影響 |
+| 不一定最佳預測 | 統計顯著不代表預測最好 |
+| 對共線性敏感 | 特徵高度相關時 p-value 可能失真 |
+
+本題結論：
+
+> Backward Elimination 是從完整模型開始，根據 p-value 逐步刪除不顯著特徵的方法。在 50 Startups 中，`R&D Spend` 通常最可能被保留。
+
+---
+
+# 學習問題 13  
+## 第四種特徵篩選方法 RFE 是什麼？它如何透過模型反覆刪除較不重要的特徵？
+
+## 回答
+
+RFE 的全名是：
+
+```text
+Recursive Feature Elimination
+```
+
+中文可稱為：
+
+> 遞迴式特徵消除法
+
+核心概念是：
+
+> 先把所有特徵放進模型，訓練後判斷每個特徵的重要性，刪除最不重要的特徵，再重新訓練模型，重複這個過程，直到剩下指定數量的特徵。
+
+流程如下：
+
+```text
+1. 使用全部特徵訓練 Linear Regression
+2. 根據模型係數判斷哪個特徵相對較弱
+3. 移除最弱的特徵
+4. 使用剩下特徵重新訓練
+5. 重複直到剩下指定數量的特徵
+```
+
+和 Backward Elimination 比較：
+
+| 方法 | 判斷依據 | 特點 |
+|---|---|---|
+| Backward Elimination | p-value | 偏統計解釋 |
+| RFE | 模型係數或特徵重要性 | 偏模型內部判斷 |
+
+Python 範例：
+
+```python
+from sklearn.linear_model import LinearRegression
+from sklearn.feature_selection import RFE
+
+lr = LinearRegression()
+
+rfe = RFE(
+    estimator=lr,
+    n_features_to_select=3
+)
+
+rfe.fit(X_train, y_train)
+
+selected_features = X_train.columns[rfe.support_]
+
+print("RFE 選出的特徵：")
+print(selected_features)
+```
+
+查看特徵排名：
+
+```python
+import pandas as pd
+
+rfe_result = pd.DataFrame({
+    "Feature": X_train.columns,
+    "Selected": rfe.support_,
+    "Ranking": rfe.ranking_
+}).sort_values(by="Ranking")
+
+print(rfe_result)
+```
+
+其中：
+
+```text
+Ranking = 1
+```
+
+代表該特徵被 RFE 保留下來。
+
+優點：
+
+| 優點 | 說明 |
+|---|---|
+| 會搭配模型判斷 | 不只是看單一特徵 |
+| 適合 Linear Regression | 可根據係數逐步刪除 |
+| 可指定保留特徵數 | 例如保留 2 或 3 個特徵 |
+| 結果容易比較 | 可與其他篩選方法比較 |
+
+限制：
+
+| 限制 | 說明 |
+|---|---|
+| 計算成本較高 | 需要反覆訓練模型 |
+| 結果受模型影響 | 換模型可能選出不同特徵 |
+| 小資料不穩定 | 50 筆資料切分不同可能結果不同 |
+| 需要注意尺度 | 特徵尺度差異可能影響係數判斷 |
+
+本題結論：
+
+> RFE 是一種以模型為基礎的特徵篩選方法，會反覆訓練模型並刪除較不重要的特徵。在 50 Startups 中，`R&D Spend` 很可能被保留，`Marketing Spend` 也常具有重要性。
+
+---
+
+# 學習問題 14  
+## 第五種特徵篩選方法 Lasso-based Selection 是什麼？為什麼 Lasso 可以讓不重要的特徵係數變成 0？
+
+## 回答
+
+Lasso-based Selection 是利用 Lasso Regression 進行特徵篩選的方法。
+
+Lasso 的特色是：
+
+> 它會在訓練模型時懲罰過大的係數，並且可能把不重要特徵的係數壓縮成 0。
+
+Lasso 使用的是：
+
+```text
+L1 Regularization
+```
+
+如果某個特徵的係數變成 0，就代表模型實際上不再使用這個特徵。
+
+範例：
+
+| 特徵 | 係數 |
+|---|---:|
+| R&D Spend | 0.85 |
+| Marketing Spend | 0.12 |
+| Administration | 0.00 |
+| State_Florida | 0.00 |
+| State_New York | 0.00 |
+
+代表 Lasso 保留：
+
+```text
+R&D Spend
+Marketing Spend
+```
+
+Lasso 和 RFE 比較：
+
+| 方法 | 核心依據 | 特徵如何被移除 |
+|---|---|---|
+| RFE | 模型反覆訓練後的特徵重要性 | 一輪一輪刪除較弱特徵 |
+| Lasso | L1 正則化後的係數大小 | 直接把部分係數壓成 0 |
+
+Lasso 通常需要標準化，因為不同特徵尺度差異很大。
+
+例如：
+
+| 特徵 | 數值範圍 |
+|---|---:|
+| Marketing Spend | 0 到 471,784 |
+| State_Florida | 0 或 1 |
+
+Python 範例：
+
+```python
+from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import Lasso
+from sklearn.pipeline import Pipeline
+import pandas as pd
+
+lasso_pipeline = Pipeline([
+    ("scaler", StandardScaler()),
+    ("lasso", Lasso(alpha=0.1, random_state=42))
+])
+
+lasso_pipeline.fit(X_train, y_train)
+
+coef = lasso_pipeline.named_steps["lasso"].coef_
+
+lasso_result = pd.DataFrame({
+    "Feature": X_train.columns,
+    "Coefficient": coef
+}).sort_values(by="Coefficient", key=abs, ascending=False)
+
+print(lasso_result)
+```
+
+選出係數不為 0 的特徵：
+
+```python
+selected_features = lasso_result[
+    lasso_result["Coefficient"].abs() > 1e-6
+]["Feature"]
+
+print("Lasso 選出的特徵：")
+print(selected_features)
+```
+
+`alpha` 的意義：
+
+| alpha | 效果 |
+|---:|---|
+| 越小 | 懲罰較弱，保留較多特徵 |
+| 越大 | 懲罰較強，更多係數可能變成 0 |
+
+優點：
+
+| 優點 | 說明 |
+|---|---|
+| 可自動篩選特徵 | 不重要特徵係數可能變成 0 |
+| 降低過度配適 | 避免模型過度依賴太多特徵 |
+| 適合高維資料 | 特徵很多時特別有用 |
+| 可與線性模型連結 | Lasso 本質是加上 L1 正則化的線性模型 |
+
+限制：
+
+| 限制 | 說明 |
+|---|---|
+| 需要調整 alpha | 不同 alpha 會得到不同特徵 |
+| 需要標準化 | 否則懲罰不公平 |
+| 小資料較敏感 | 50 筆資料可能結果不穩 |
+| 高相關特徵中可能任選其一 | 可能只保留其中一個 |
+| 係數為 0 不代表商業上完全沒意義 | 只代表在該模型與參數下貢獻較低 |
+
+本題結論：
+
+> Lasso-based Selection 利用 L1 正則化將不重要特徵的係數壓縮成 0，進而達到特徵篩選效果。在 50 Startups 中，`R&D Spend` 與 `Marketing Spend` 通常較可能被保留。
+
+---
+
+# 學習問題 15  
+## 五種特徵篩選方法選出的特徵可能不同，該如何比較與整理它們的結果？
+
+## 回答
+
+五種特徵篩選方法的判斷邏輯不同，所以選出的特徵不一定完全相同。
+
+這是正常現象，不代表其中某一種方法一定錯，而是因為每種方法看的角度不同。
+
+| 方法 | 判斷依據 | 特點 |
+|---|---|---|
+| 相關係數法 | 特徵與 `Profit` 的線性相關程度 | 最直覺，適合初步觀察 |
+| SelectKBest | 統計分數與 p-value | 適合快速挑選前 K 個特徵 |
+| Backward Elimination | 多變量模型中的 p-value | 偏重統計顯著性 |
+| RFE | 模型反覆訓練後的特徵排名 | 偏重模型判斷 |
+| Lasso | L1 正則化後的係數是否為 0 | 可自動壓縮不重要特徵 |
+
+建議用「特徵入選次數表」整理：
+
+| 特徵 | 相關係數法 | SelectKBest | Backward Elimination | RFE | Lasso | 入選次數 |
+|---|---:|---:|---:|---:|---:|---:|
+| R&D Spend | ✓ | ✓ | ✓ | ✓ | ✓ | 5 |
+| Marketing Spend | ✓ | ✓ |  | ✓ | ✓ | 4 |
+| Administration |  |  |  |  |  | 0 |
+| State_Florida |  |  |  | ✓ |  | 1 |
+| State_New York |  |  |  |  |  | 0 |
+
+入選次數解讀：
+
+| 入選次數 | 解讀 |
+|---:|---|
+| 4～5 次 | 穩定重要特徵 |
+| 2～3 次 | 可進一步測試的候選特徵 |
+| 0～1 次 | 可能較不穩定或貢獻較低 |
+
+但不能只看入選次數，最後仍要建立模型並比較：
+
+| 模型版本 | 使用特徵 |
+|---|---|
+| Model A | 相關係數法選出的特徵 |
+| Model B | SelectKBest 選出的特徵 |
+| Model C | Backward Elimination 選出的特徵 |
+| Model D | RFE 選出的特徵 |
+| Model E | Lasso 選出的特徵 |
+| Model F | 所有特徵 |
+
+本題結論：
+
+> 五種特徵篩選方法的結果應整理成「特徵入選次數表」，觀察哪些特徵在多數方法中都被選中。通常 `R&D Spend` 最穩定，其次可能是 `Marketing Spend`，但最後仍需透過模型評估確認。
+
+---
+
+# 補充學習問題  
+## 各種特徵篩選方法，應該如何決定要選幾個特徵？比較時要固定特徵數，還是讓每種方法找自己的最佳特徵數？
+
+## 回答
+
+這是一個非常重要的問題。
+
+核心回答：
+
+| 比較目的 | 建議做法 |
+|---|---|
+| 公平比較特徵篩選方法本身 | 固定相同特徵數，例如每種方法都選 2 個或 3 個特徵 |
+| 尋找最佳預測模型 | 讓每種方法透過驗證流程找出自己的最佳特徵數或最佳參數 |
+
+也就是說，兩種做法都可以，但目的不同。
+
+---
+
+## 一、如果目的是「學習與公平比較方法」
+
+建議讓各方法選出相同數量的特徵。
+
+例如：
+
+```text
+每種方法都選 2 個特徵
+```
+
+這樣比較比較公平，因為你控制住了「特徵數量」這個變因。
+
+這種做法適合回答：
+
+> 在相同特徵數量下，哪一種特徵篩選方法選出的組合，讓 Linear Regression 表現較好？
+
+不過要注意：
+
+| 方法 | 是否容易固定特徵數 |
+|---|---|
+| 相關係數法 | 可以，選 Top k |
+| SelectKBest | 可以，設定 k |
+| RFE | 可以，設定 n_features_to_select |
+| Backward Elimination | 較不容易，通常依 p-value 自動決定 |
+| Lasso | 較不容易，依 alpha 決定係數是否為 0 |
+
+---
+
+## 二、如果目的是「找最佳模型」
+
+就不一定要固定特徵個數。
+
+應讓每種方法自己尋找最佳參數：
+
+| 方法 | 可調整的參數 |
+|---|---|
+| 相關係數法 | 選前 1、2、3、4、5 個特徵 |
+| SelectKBest | k = 1、2、3、4、5 |
+| RFE | n_features_to_select = 1、2、3、4、5 |
+| Backward Elimination | p-value 門檻，例如 0.01、0.05、0.10 |
+| Lasso | alpha，例如 0.001、0.01、0.1、1、10 |
+
+這種做法適合回答：
+
+> 各種方法在自己最佳設定下，哪一個方法最後建立出的 Linear Regression 模型表現最好？
+
+---
+
+## 三、最推薦的學習做法：兩階段比較
+
+### 第一階段：固定特徵數比較
+
+例如：
+
+```text
+每種方法都選 2 個特徵
+```
+
+目的：
+
+> 公平比較五種特徵篩選方法在相同特徵數量下的差異。
+
+### 第二階段：各方法最佳化比較
+
+讓每種方法自己找最佳參數：
+
+| 方法 | 搜尋方式 |
+|---|---|
+| Correlation | 測試 Top 1 到 Top 5 |
+| SelectKBest | 測試 k=1 到 k=5 |
+| RFE | 測試保留 1 到 5 個特徵 |
+| Backward Elimination | 測試 p-value 門檻 |
+| Lasso | 測試 alpha 或使用 LassoCV |
+
+---
+
+## 四、一定要避免的錯誤
+
+錯誤做法：
+
+```text
+測試 k=1、2、3、4、5
+↓
+看哪個在 test set 表現最好
+↓
+選那個 k
+```
+
+這樣會讓測試集變成調參資料，造成資料外洩。
+
+正確做法：
+
+```text
+Training Set
+↓
+再切出 Validation Set 或使用 Cross-Validation
+↓
+用 Validation / CV 決定最佳特徵數或參數
+↓
+最後只用 Test Set 評估一次
+```
+
+資料用途：
+
+| 資料 | 用途 |
+|---|---|
+| Training Set | 訓練模型、特徵篩選 |
+| Validation Set / Cross-Validation | 選 k、選 alpha、選 p-value 門檻 |
+| Testing Set | 最終評估，不參與調參 |
+
+---
+
+## 補充問題結論
+
+> 固定特徵數適合公平比較方法本身；各自最佳化適合尋找最佳模型。正式報告最好兩者都做，但測試集只能用於最後評估，不能拿來決定特徵數或參數。
+
+---
+
+# 學習問題 16  
+## 特徵篩選完成後，如何建立 Linear Regression 模型並解讀模型係數？
+
+## 回答
+
+特徵篩選完成後，進入 CRISP-DM 的 Modeling 階段。
+
+Linear Regression 的任務是：
+
+```text
+用 R&D Spend、Administration、Marketing Spend、State 等特徵
+預測 Profit
+```
+
+如果特徵篩選後選出：
+
+```text
+R&D Spend
+Marketing Spend
+```
+
+模型形式可寫成：
+
+```text
+Profit = b0 + b1 × R&D Spend + b2 × Marketing Spend
+```
+
+其中：
+
+| 符號 | 意義 |
+|---|---|
+| Profit | 預測的公司獲利 |
+| b0 | 截距 |
+| b1 | R&D Spend 的係數 |
+| b2 | Marketing Spend 的係數 |
+
+建模範例：
+
+```python
+from sklearn.linear_model import LinearRegression
+
+selected_features = ["R&D Spend", "Marketing Spend"]
+
+X_train_selected = X_train[selected_features]
+X_test_selected = X_test[selected_features]
+
+model = LinearRegression()
+
+model.fit(X_train_selected, y_train)
+
+y_pred = model.predict(X_test_selected)
+```
+
+查看係數：
+
+```python
+import pandas as pd
+
+coef_table = pd.DataFrame({
+    "Feature": selected_features,
+    "Coefficient": model.coef_
+})
+
+print("Intercept:", model.intercept_)
+print(coef_table)
+```
+
+係數解讀：
+
+| 特徵 | 係數 | 解讀 |
+|---|---:|---|
+| R&D Spend | 0.78 | 其他條件固定時，研發支出每增加 1，Profit 預測值平均增加 0.78 |
+| Marketing Spend | 0.03 | 其他條件固定時，行銷支出每增加 1，Profit 預測值平均增加 0.03 |
+
+注意：
+
+> 係數代表模型中的統計關係，不等於因果關係。
+
+如果模型包含 One-Hot Encoding 後的 `State`：
+
+```text
+State_Florida
+State_New York
+```
+
+而 `California` 是參考組，則：
+
+| 特徵 | 解讀 |
+|---|---|
+| State_Florida | 與參考組 California 相比，Florida 對 Profit 預測值的差異 |
+| State_New York | 與參考組 California 相比，New York 對 Profit 預測值的差異 |
+
+完整建模函式模板：
+
+```python
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+import numpy as np
+import pandas as pd
+
+def train_linear_regression(X_train, X_test, y_train, y_test, selected_features, model_name):
+    X_train_selected = X_train[selected_features]
+    X_test_selected = X_test[selected_features]
+
+    model = LinearRegression()
+    model.fit(X_train_selected, y_train)
+
+    y_pred = model.predict(X_test_selected)
+
+    mae = mean_absolute_error(y_test, y_pred)
+    mse = mean_squared_error(y_test, y_pred)
+    rmse = np.sqrt(mse)
+    r2 = r2_score(y_test, y_pred)
+
+    coef_table = pd.DataFrame({
+        "Feature": selected_features,
+        "Coefficient": model.coef_
+    })
+
+    return {
+        "Model": model_name,
+        "Selected Features": selected_features,
+        "Intercept": model.intercept_,
+        "MAE": mae,
+        "MSE": mse,
+        "RMSE": rmse,
+        "R2": r2,
+        "Coefficients": coef_table
+    }
+```
+
+本題結論：
+
+> 特徵篩選完成後，要使用選出的特徵訓練 Linear Regression，並透過係數理解每個特徵與 `Profit` 的方向與影響幅度，但係數只能解釋統計關係，不能直接推論因果。
+
+---
+
+# 學習問題 17  
+## Linear Regression 模型建立完成後，應該用哪些指標評估模型表現？
+
+## 回答
+
+因為 50 Startups 是回歸問題，所以不能使用 Accuracy、Precision、Recall 等分類指標。
+
+建議使用以下回歸指標：
+
+| 指標 | 中文名稱 | 判斷方向 |
+|---|---|---|
+| MAE | 平均絕對誤差 | 越小越好 |
+| MSE | 均方誤差 | 越小越好 |
+| RMSE | 均方根誤差 | 越小越好 |
+| R² | 決定係數 | 越接近 1 越好 |
+| Adjusted R² | 調整後決定係數 | 越高越好 |
+
+---
+
+## 1. MAE
+
+```text
+MAE = 平均(|真實值 - 預測值|)
+```
+
+意義：
+
+> 模型預測值與真實值平均差多少。
+
+優點是容易解釋，因為單位和 `Profit` 相同。
+
+---
+
+## 2. MSE
+
+```text
+MSE = 平均((真實值 - 預測值)²)
+```
+
+特色：
+
+> 會放大大誤差。
+
+缺點是單位被平方，不容易直覺解讀。
+
+---
+
+## 3. RMSE
+
+```text
+RMSE = √MSE
+```
+
+特色：
+
+> 單位回到原本 Profit 的單位，比 MSE 更容易解釋。
+
+例如 RMSE = 10,000，可理解為：
+
+> 模型的典型預測誤差大約是 10,000。
+
+---
+
+## 4. R²
+
+R² 衡量：
+
+> 模型可以解釋多少比例的 `Profit` 變異。
+
+解讀：
+
+| R² | 解讀 |
+|---:|---|
+| 0.95 | 模型可以解釋約 95% 的 Profit 變異 |
+| 0.70 | 模型可以解釋約 70% 的 Profit 變異 |
+| 0.00 | 模型幾乎沒有比猜平均值好 |
+| 負數 | 模型比直接用平均值預測還差 |
+
+---
+
+## 5. Adjusted R²
+
+Adjusted R² 會考慮特徵數量。
+
+它適合比較不同特徵數量的模型，因為 R² 可能因為加入更多特徵而上升，但不代表模型真的更好。
+
+Python 計算：
+
+```python
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+import numpy as np
+
+mae = mean_absolute_error(y_test, y_pred)
+mse = mean_squared_error(y_test, y_pred)
+rmse = np.sqrt(mse)
+r2 = r2_score(y_test, y_pred)
+
+n = len(y_test)
+p = X_test_selected.shape[1]
+
+adjusted_r2 = 1 - (1 - r2) * (n - 1) / (n - p - 1)
+
+print("MAE:", mae)
+print("MSE:", mse)
+print("RMSE:", rmse)
+print("R²:", r2)
+print("Adjusted R²:", adjusted_r2)
+```
+
+本專案最推薦優先看：
+
+| 優先度 | 指標 | 原因 |
+|---|---|---|
+| 第一 | RMSE | 單位與 Profit 相同，且重視大誤差 |
+| 第二 | R² | 觀察模型整體解釋能力 |
+| 第三 | Adjusted R² | 適合比較不同特徵數量的模型 |
+
+本題結論：
+
+> Linear Regression 建立完成後，應使用 MAE、MSE、RMSE、R²、Adjusted R² 評估，其中最建議優先比較 RMSE、R² 與 Adjusted R²。
+
+---
+
+# 學習問題 18  
+## 如何比較不同特徵篩選方法建立出的 Linear Regression 模型，並選出最合適的模型？
+
+## 回答
+
+不同特徵篩選方法會選出不同特徵，因此要建立多個 Linear Regression 模型進行比較。
+
+比較流程：
+
+```text
+特徵篩選結果
+↓
+建立 Linear Regression 模型
+↓
+使用相同測試集評估
+↓
+比較指標
+↓
+選出最合適模型
+```
+
+為了公平比較，應固定：
+
+| 項目 | 建議 |
+|---|---|
+| 資料切分 | 使用同一組 X_train、X_test、y_train、y_test |
+| 模型演算法 | 全部都使用 Linear Regression |
+| 評估資料 | 全部都用同一個 Test Set |
+| 評估指標 | 統一使用 MAE、RMSE、R²、Adjusted R² |
+| 特徵篩選 | 只在 Training Set 內完成 |
+
+建議比較表：
+
+| 模型 | 特徵數 | 選出特徵 | MAE | RMSE | R² | Adjusted R² |
+|---|---:|---|---:|---:|---:|---:|
+| Correlation Model | 2 | R&D Spend、Marketing Spend |  |  |  |  |
+| SelectKBest Model | 2 | R&D Spend、Marketing Spend |  |  |  |  |
+| Backward Elimination Model | 1 | R&D Spend |  |  |  |  |
+| RFE Model | 3 | R&D Spend、Marketing Spend、State_Florida |  |  |  |  |
+| Lasso Model | 2 | R&D Spend、Marketing Spend |  |  |  |  |
+| Full Model | 5 | 全部特徵 |  |  |  |  |
+
+判斷模型時建議依序看：
+
+1. RMSE 是否較低  
+2. R² 是否較高  
+3. Adjusted R² 是否合理  
+4. 特徵數是否過多  
+5. 商業解釋是否合理  
+
+如果兩個模型表現接近：
+
+| 模型 | 特徵數 | RMSE | R² |
+|---|---:|---:|---:|
+| Model A | 2 | 8,500 | 0.94 |
+| Model B | 5 | 8,300 | 0.945 |
+
+雖然 Model B 稍微好一點，但多用了 3 個特徵。  
+若差距很小，可以選 Model A，因為它：
+
+```text
+更簡潔
+更容易解釋
+較不容易過度配適
+```
+
+Python 比較表範例：
+
+```python
+import pandas as pd
+
+results = [
+    {
+        "Model": "Correlation Model",
+        "Features": ["R&D Spend", "Marketing Spend"],
+        "Feature Count": 2,
+        "MAE": mae_corr,
+        "RMSE": rmse_corr,
+        "R2": r2_corr,
+        "Adjusted R2": adj_r2_corr
+    },
+    {
+        "Model": "SelectKBest Model",
+        "Features": ["R&D Spend", "Marketing Spend"],
+        "Feature Count": 2,
+        "MAE": mae_kbest,
+        "RMSE": rmse_kbest,
+        "R2": r2_kbest,
+        "Adjusted R2": adj_r2_kbest
+    }
+]
+
+comparison_df = pd.DataFrame(results)
+
+comparison_df = comparison_df.sort_values(
+    by=["RMSE", "Adjusted R2"],
+    ascending=[True, False]
+)
+
+comparison_df
+```
+
+本題結論：
+
+> 比較不同特徵篩選方法建立出的 Linear Regression 模型時，要使用相同資料切分、相同模型與相同評估指標。最合適的模型不一定是特徵最多或 R² 最高的模型，而應該是預測誤差低、解釋能力好、特徵數適中且商業解釋合理的模型。
+
+---
+
+# 學習問題 19  
+## 模型選定後，如何撰寫 Evaluation 階段的分析結論？
+
+## 回答
+
+Evaluation 階段不是只報分數，而是要回答：
+
+| 問題 | 說明 |
+|---|---|
+| 哪個模型表現最好？ | 根據 RMSE、R²、Adjusted R² 判斷 |
+| 這個模型用了哪些特徵？ | 說明模型依賴哪些資訊預測 Profit |
+| 這些特徵是否合理？ | 回到商業理解檢查解釋是否合理 |
+| 模型有什麼限制？ | 樣本數、資料範圍、因果解釋限制 |
+
+建議撰寫架構：
+
+```text
+1. 說明比較了哪些模型
+2. 指出主要評估指標
+3. 說明最佳模型
+4. 解釋最佳模型為何合理
+5. 說明模型限制
+6. 提出後續改善方向
+```
+
+範例結論：
+
+> 本研究比較了五種特徵篩選方法所建立的 Linear Regression 模型，並以 RMSE、R² 與 Adjusted R² 作為主要評估指標。結果顯示，Full Model 雖然在 RMSE 上略低，但使用了較多特徵，且 Adjusted R² 未明顯優於較簡潔的模型。相較之下，Correlation Model 與 SelectKBest Model 使用 `R&D Spend` 與 `Marketing Spend` 兩個特徵，即可達到接近完整模型的預測效果，且模型更容易解釋。因此，本分析建議以 `R&D Spend` 與 `Marketing Spend` 建立的 Linear Regression 作為較合適的模型。
+
+模型限制應包含：
+
+| 限制 | 說明 |
+|---|---|
+| 樣本數少 | 只有 50 筆資料，模型結果容易受少數資料影響 |
+| 資料欄位有限 | 只包含支出與州別，缺少產業、公司規模、成立年限等資訊 |
+| 不能推論因果 | 高相關或高係數不代表增加支出一定會造成獲利增加 |
+
+完整 Evaluation 模板：
+
+> 本研究依據 CRISP-DM 流程，使用 Kaggle 50 Startups 資料集建立 Linear Regression 模型，並比較多種特徵篩選方法的模型表現。評估結果以 RMSE、R² 與 Adjusted R² 為主要依據。整體而言，若模型使用較少特徵即可達到接近完整模型的預測效果，則應優先選擇較簡潔且容易解釋的模型。  
+>
+> 從特徵重要性來看，`R&D Spend` 通常是最穩定且最具預測價值的特徵，表示研發支出與公司獲利之間具有明顯正向關聯。`Marketing Spend` 也可能提供額外預測資訊，但其重要性通常低於 `R&D Spend`。相較之下，`Administration` 與 `State` 的貢獻較不穩定，是否納入模型需依模型評估結果判斷。  
+>
+> 不過，由於本資料集僅有 50 筆資料，樣本數偏少，且資料欄位有限，因此模型結果應以學習與方法示範為主，不宜過度推論為真實商業因果關係。後續若要提升模型可靠性，建議增加資料筆數、加入更多公司背景變數，並使用交叉驗證檢查模型穩定性。
+
+本題結論：
+
+> Evaluation 階段的重點不是只報告模型分數，而是要綜合判斷模型表現、特徵數量、商業解釋、模型限制與後續改善方向。
+
+---
+
+# 學習問題 20  
+## 模型評估完成後，CRISP-DM 的 Deployment 階段在這個學習專案中應該如何呈現？
+
+## 回答
+
+在 CRISP-DM 中，最後一個階段是 Deployment。  
+但在 50 Startups 這種學習型專案中，部署不一定代表真的把模型上線成網站或 API。
+
+它也可以是：
+
+> 將分析結果整理成可以被理解、被使用、被展示的成果。
+
+Deployment 可有三種層次：
+
+| 層次 | 產出形式 | 適合情境 |
+|---|---|---|
+| 基礎版 | 分析報告 | 課堂作業、學習紀錄 |
+| 進階版 | Notebook + 視覺化圖表 | 展示完整分析流程 |
+| 應用版 | 簡易預測工具 | 模擬實際使用情境 |
+
+---
+
+## 基礎版：分析報告
+
+報告章節可包含：
+
+| 報告章節 | 內容 |
+|---|---|
+| Business Understanding | 說明分析目標與商業問題 |
+| Data Understanding | 說明資料欄位、資料型態、初步觀察 |
+| Data Preparation | 說明 One-Hot Encoding、Train/Test Split、避免資料外洩 |
+| Modeling | 說明 Linear Regression 與五種特徵篩選方法 |
+| Evaluation | 比較 MAE、RMSE、R²、Adjusted R² |
+| Deployment | 說明成果如何應用與限制 |
+
+---
+
+## 進階版：Notebook
+
+Notebook 建議結構：
+
+```text
+01. 專案目標
+02. 匯入套件與讀取資料
+03. 資料理解與 EDA
+04. 資料前處理
+05. 特徵篩選
+06. Linear Regression 建模
+07. 模型評估
+08. 結論與限制
+```
+
+---
+
+## 應用版：簡易預測工具
+
+可讓使用者輸入：
+
+| 輸入欄位 |
+|---|
+| R&D Spend |
+| Administration |
+| Marketing Spend |
+| State |
+
+模型輸出：
+
+```text
+Predicted Profit = 預測獲利金額
+```
+
+可用形式：
+
+| 工具形式 | 說明 |
+|---|---|
+| Excel 表格 | 輸入數值後用模型公式計算 |
+| Python function | 用函式輸入資料並回傳預測 |
+| Streamlit App | 做成簡易網頁介面 |
+| Gradio App | 做成互動式模型展示 |
+
+Deployment 階段要強調限制：
+
+| 限制 | 說明 |
+|---|---|
+| 樣本數少 | 只有 50 筆，模型穩定性有限 |
+| 欄位有限 | 缺少產業、員工數、公司年齡、市場規模等變數 |
+| 非因果分析 | 模型只能說明統計關係，不能證明因果 |
+| 資料情境簡化 | 適合教學，不宜直接應用於真實投資或企業決策 |
+
+Deployment 結論範例：
+
+> 本專案依循 CRISP-DM 流程，完成 Kaggle 50 Startups 資料集之 Linear Regression 分析。最終成果可整理為一份分析報告與 Notebook，呈現從商業理解、資料觀察、資料準備、特徵篩選、建模到模型評估的完整流程。  
+>
+> 在應用層面上，本模型可作為簡易 Profit 預測工具，用於示範如何根據研發、行政、行銷支出與州別資訊預測公司獲利。然而，由於資料筆數僅 50 筆，且變數有限，因此本模型應定位為教學與方法示範，不宜直接作為實際商業決策依據。  
+>
+> 後續若要提升實務應用價值，建議蒐集更多公司樣本，加入產業類別、員工數、公司成立年限、募資金額、市場規模等變數，並透過交叉驗證與外部資料測試模型穩定性。
+
+本題結論：
+
+> 在這個 50 Startups 學習專案中，Deployment 不一定是正式上線，而是把分析成果整理成可展示、可解釋、可重現的形式。最建議的成果是一份完整 Notebook、一份簡潔分析報告與一個簡易 Profit 預測範例。
+
+---
+
+# 學習問題 21  
+## 完成 CRISP-DM 六大階段後，如何撰寫整份 50 Startups 專案的總結與學習反思？
+
+## 回答
+
+完成 CRISP-DM 六大階段後，最後應把整個專案整理成完整結論。
+
+專案總結應包含：
+
+| 區塊 | 說明 |
+|---|---|
+| 專案目標 | 說明為什麼要分析 50 Startups |
+| 分析流程 | 說明如何依照 CRISP-DM 進行 |
+| 模型方法 | 說明使用 Linear Regression 與特徵篩選 |
+| 主要發現 | 說明哪些特徵與 Profit 較有關 |
+| 限制與反思 | 說明資料與模型的不足 |
+
+專案總結範例：
+
+> 本專案以 Kaggle 50 Startups 資料集為分析對象，依循 CRISP-DM 流程進行資料分析與模型建置。研究目標是透過新創公司的研發支出、行政支出、行銷支出與所在州別，建立 Linear Regression 模型預測公司獲利 `Profit`，並進一步理解不同投入因素與獲利之間的關係。  
+>
+> 在 Business Understanding 階段，本專案將問題定義為監督式學習中的回歸問題，因為目標變數 `Profit` 屬於連續型數值。在 Data Understanding 階段，透過資料型態、缺失值、敘述統計與相關係數觀察，初步發現 `R&D Spend` 與 `Profit` 之間具有高度正相關，`Marketing Spend` 也呈現一定程度的正向關係，而 `Administration` 的線性關係相對較弱。  
+>
+> 在 Data Preparation 階段，本專案將 `Profit` 設定為目標變數 y，其他欄位作為特徵變數 X，並針對 `State` 進行 One-Hot Encoding，使類別資料能夠被 Linear Regression 使用。同時，為避免資料外洩，先切分訓練集與測試集，並強調特徵篩選與模型訓練應只在訓練集內完成。  
+>
+> 在 Modeling 階段，本專案使用五種常見特徵篩選方法，包括相關係數法、SelectKBest / f_regression、Backward Elimination、RFE 與 Lasso-based Selection，分別挑選可能重要的特徵，再建立 Linear Regression 模型。透過不同特徵組合的比較，可以觀察哪些特徵在不同方法中較穩定地被選中。  
+>
+> 在 Evaluation 階段，本專案建議使用 MAE、RMSE、R² 與 Adjusted R² 評估模型表現。其中，RMSE 可用來衡量預測誤差大小，R² 可觀察模型解釋能力，Adjusted R² 則適合比較不同特徵數量的模型。整體而言，若 `R&D Spend` 與 `Marketing Spend` 組成的簡潔模型能達到接近完整模型的表現，則可視為較合適的模型，因為它兼具預測能力、模型簡潔性與商業解釋性。  
+>
+> 在 Deployment 階段，本專案的成果可整理為分析報告、Jupyter Notebook 或簡易 Profit 預測工具。由於資料集僅有 50 筆資料，且變數數量有限，因此本模型較適合作為 CRISP-DM、特徵篩選與 Linear Regression 的教學示範，不宜直接作為實際企業決策或投資判斷依據。
+
+學習反思範例：
+
+> 透過本專案，我學習到機器學習建模並不是直接將資料放入模型，而是需要先釐清商業問題、理解資料內容、進行適當的資料準備，再透過特徵篩選與模型評估判斷模型是否合理。尤其在小型資料集中，資料外洩、過度配適與模型解釋過度延伸都是需要特別注意的問題。  
+>
+> 此外，本專案也讓我理解不同特徵篩選方法的判斷邏輯並不相同。相關係數法與 SelectKBest 偏向觀察單一特徵與目標變數的關係，Backward Elimination 偏向統計顯著性，RFE 則依據模型反覆刪除較弱特徵，而 Lasso 則利用 L1 正則化讓部分特徵係數歸零。不同方法可能得到不同結果，因此最後仍需透過模型評估與商業合理性共同判斷。  
+>
+> 整體而言，本專案的核心學習不是只追求最高模型分數，而是學會建立一個可解釋、可比較、可避免資料外洩，且符合分析目的的機器學習流程。
+
+最後一句總結可寫成：
+
+> 本專案透過 50 Startups 資料集示範 CRISP-DM 分析流程，並以 Linear Regression 搭配多種特徵篩選方法預測 `Profit`；結果顯示 `R&D Spend` 通常是最穩定的重要特徵，而模型選擇應兼顧預測表現、特徵數量、解釋性與資料限制。
+
+---
+
+# 全案總結
+
+本學習專案完整走過 CRISP-DM 六大階段，從商業理解、資料理解、資料準備、特徵篩選、建模、模型評估到部署呈現，建立了一套完整的 50 Startups 分析流程。
+
+核心學習重點如下：
+
+| 面向 | 重點 |
+|---|---|
+| 問題類型 | `Profit` 是連續型數值，因此是回歸問題 |
+| 目標變數 | `Profit` |
+| 特徵變數 | `R&D Spend`、`Administration`、`Marketing Spend`、`State` |
+| 類別處理 | `State` 需進行 One-Hot Encoding |
+| 資料切分 | 必須切分 Train/Test，避免只評估模型記憶能力 |
+| 資料外洩 | 特徵篩選、標準化、補值等都只能用訓練集建立規則 |
+| 特徵篩選 | 可使用相關係數法、SelectKBest、Backward Elimination、RFE、Lasso |
+| 建模方法 | 本專案限定使用 Linear Regression |
+| 評估指標 | MAE、MSE、RMSE、R²、Adjusted R² |
+| 模型選擇 | 不只看分數，也要考慮特徵數、解釋性與商業合理性 |
+| 部署形式 | 報告、Notebook、簡易預測工具 |
+| 主要限制 | 只有 50 筆資料，樣本數少，不宜過度推論因果 |
+
+最終觀念：
+
+> 50 Startups 資料集非常適合用來學習 CRISP-DM、Linear Regression、特徵篩選與模型評估；但由於資料筆數少、欄位有限，因此應定位為教學示範資料，不宜直接作為真實商業決策依據。
+
+---
+````
